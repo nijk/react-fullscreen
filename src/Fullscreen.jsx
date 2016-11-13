@@ -9,38 +9,39 @@ class Fullscreen extends Component {
 
     // Default state
     this.state = {
-      isFullscreen: false,
-      fullscreenProps: null
+      fullscreen: null
     };
-
-    // Bind context to click handlers
-    this.toggleFullscreen = this.toggleFullscreen.bind(this);
-    this.onKeyUpCapture = this.onKeyUpCapture.bind(this);
   }
 
   componentWillMount () {
     this.element = document.querySelector(this.props.target);
-    this.setState({
-      fullscreenProps: this._getFullscreenProps()
-    });
+    const fullscreen = this._getFullscreenProps();
+
+    if (!!fullscreen) {
+      // Re-render on change, e.g keyup 'esc' in global scope
+      document[fullscreen.onfullscreenchange] = () => this.forceUpdate();
+
+      this.setState({ fullscreen });
+    }
   }
 
   isFullscreen () {
-    return this.state.isFullscreen;
-  }
-
-  setFullscreenState (fn) {
-    const { element } = this.state.fullscreenProps;
-    this.setState({ isFullscreen: !!document[element] }, fn);
+    return !!document[this.state.fullscreen.element];
   }
 
   _getFullscreenProps () {
+    if (!this.element) {
+      console.warn('Target element not found, cannot provide fullscreen');
+      return null;
+    }
+
     if (this.element.webkitRequestFullscreen && !!document.webkitExitFullscreen) {
       return {
         element: 'webkitFullscreenElement',
         enabled: 'webkitFullscreenEnabled',
         exit: 'webkitExitFullscreen',
-        request : 'webkitRequestFullscreen'
+        request : 'webkitRequestFullscreen',
+        onfullscreenchange: 'onwebkitfullscreenchange',
       };
     }
 
@@ -49,7 +50,8 @@ class Fullscreen extends Component {
         element: 'mozFullScreenElement',
         enabled: 'mozFullScreenEnabled',
         exit: 'mozCancelFullScreen',
-        request : 'mozRequestFullScreen'
+        request : 'mozRequestFullScreen',
+        onfullscreenchange: 'onmozfullscreenchange',
       };
     }
 
@@ -58,7 +60,8 @@ class Fullscreen extends Component {
         element: 'msFullscreenElement',
         enabled: 'msFullscreenEnabled',
         exit: 'msExitFullscreen',
-        request : 'msRequestFullscreen'
+        request : 'msRequestFullscreen',
+        onfullscreenchange: 'onmsfullscreenchange',
       };
     }
 
@@ -67,51 +70,45 @@ class Fullscreen extends Component {
         element: 'fullscreenElement',
         enabled: 'fullscreenEnabled',
         exit: 'exitFullscreen',
-        request : 'requestFullscreen'
+        request : 'requestFullscreen',
+        onfullscreenchange: 'onfullscreenchange',
       };
     }
 
+    console.warn('Browser does not appear to support Fullscreen API. See https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API', this.state.fullscreen);
     return null;
   }
 
   _requestFullscreen () {
-    const { enabled, request } = this.state.fullscreenProps;
+    const { enabled, request } = this.state.fullscreen;
 
-    if (document[enabled]) {
-      this.element[request]();
-      this.setFullscreenState();
-    } else {
-      console.warn('Fullscreen functionality is not enabled');
-    }
+    document[enabled] ? this.element[request]() : console.warn('Fullscreen functionality is not enabled');
   }
 
   _cancelFullscreen () {
-    document[this.state.fullscreenProps.exit]();
-    this.setFullscreenState();
+    document[this.state.fullscreen.exit]();
   }
 
   onKeyUpCapture (e) {
     if (e.key === 'Escape' && this.isFullscreen()) {
-      this.setFullscreenState();
+      this._cancelFullscreen();
     }
   }
 
   toggleFullscreen () {
-    this.setFullscreenState(() => this.isFullscreen() ? this._cancelFullscreen() : this._requestFullscreen());
-
+    this.isFullscreen() ? this._cancelFullscreen() : this._requestFullscreen();
   }
 
   render () {
-    if (!this.state.fullscreenProps) {
-      console.warn('Browser does not support Fullscreen API. See https://developer.mozilla.org/en-US/docs/Web/API/Fullscreen_API', this.state.fullscreenProps);
+    if (!this.state.fullscreen) {
       return null;
     }
 
     return (
-      <button onClick={ this.toggleFullscreen } onKeyUpCapture={ this.onKeyUpCapture } className={ this.props.className }>
-    { this.isFullscreen() ? this.props.contentExit : this.props.contentEnter }
-  </button>
-  );
+      <button onClick={ () => this.toggleFullscreen() } onKeyUpCapture={ (e) => this.onKeyUpCapture(e) } className={ this.props.className }>
+        { this.isFullscreen() ? this.props.contentExit : this.props.contentEnter }
+      </button>
+    );
   }
 }
 
