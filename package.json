@@ -1,6 +1,6 @@
 {
-  "name": "react-fullscreen",
-  "version": "0.0.1",
+  "name": "react-html5-fullscreen",
+  "version": "0.0.2",
   "description": "A simple React component that implements the Fullscreen API",
   "main": "dist/index.js",
   "scripts": {
@@ -36,7 +36,7 @@
     "component"
   ],
   "author": "Nick Aspinall",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/nijk/react-fullscreen/issues"
   },
